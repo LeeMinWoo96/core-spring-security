@@ -1,0 +1,31 @@
+### Send POST request with json body
+POST http://localhost:8080/api/login
+X-Requested-With: XMLHttpRequest
+Content-Type: application/json
+
+
+{
+  "username": "user",
+  "password": "1111"
+}
+
+### Send POST request with json body
+POST http://localhost:8080/api/login
+X-Requested-With: XMLHttpRequest
+Content-Type: application/json
+
+
+{
+  "username": "manager",
+  "password": "1111"
+}
+
+### Send POST request with body as parameters
+GET http://localhost:8080/api/message
+Content-Type: application/json
+X-Requested-With: XMLHttpRequest
+JSESSIONID: BF949C48CDF30612E3A215D2FF4D860B
+Cookie: JSESSIONID=A3049EE444DFFE4628EAFFCB2E94A72D;
+
+
+###
