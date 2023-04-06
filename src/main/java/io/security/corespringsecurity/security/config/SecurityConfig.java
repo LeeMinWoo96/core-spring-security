@@ -4,6 +4,7 @@ package io.security.corespringsecurity.security.config;
 
 import io.security.corespringsecurity.security.common.FormAuthenticationDetailsSource;
 import io.security.corespringsecurity.security.handler.CustomAccessDeniedHandler;
+import io.security.corespringsecurity.security.manager.CustomRequestMatcherDelegatingAuthorizationManager;
 import io.security.corespringsecurity.security.provider.CustomAuthenticationProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
@@ -19,6 +20,8 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.access.intercept.FilterSecurityInterceptor;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
@@ -104,15 +107,16 @@ public class SecurityConfig {
         http.authenticationManager(authenticationManager);
 
         http
-                .authorizeHttpRequests()
-                .requestMatchers("/", "/users", "/login*", "users/login/**").permitAll()
-                .requestMatchers("/mypage").hasRole("USER")
-                .requestMatchers("/message").hasRole("MANAGER")
-                .requestMatchers("/config").hasRole("ADMIN")
+                .authorizeHttpRequests(authorize ->authorize
+                .requestMatchers("/", "/users", "/login*", "users/login/**","/login_proc","/denied/**","/logout").permitAll()
+//                .requestMatchers("/mypage").hasRole("USER")
+//                .requestMatchers("/message").hasRole("MANAGER")
+//                .requestMatchers("/config").hasRole("ADMIN")
                 .requestMatchers("/").permitAll()
+                .requestMatchers("/**").access(new CustomRequestMatcherDelegatingAuthorizationManager())
                 .anyRequest()
                 .authenticated()
-                .and()
+                .and())
                 .formLogin()
                 .loginPage("/login")
                 .loginProcessingUrl("/login_proc")
@@ -185,5 +189,10 @@ public class SecurityConfig {
     public ProviderManager providerManager() {
         return new ProviderManager(Arrays.asList(customAuthenticationProvider()));
     }
+
+//    @Bean
+//    public AuthorizationFilter customAuthorizationFilter(){
+////        AuthorizationFilter authorizationFilter = new AuthorizationFilter();
+//    }
 
 }

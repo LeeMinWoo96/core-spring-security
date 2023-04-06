@@ -2,6 +2,7 @@ package io.security.corespringsecurity.security.provider;
 
 import io.security.corespringsecurity.security.common.FormWebAuthenticationDetails;
 import io.security.corespringsecurity.security.service.AccountContext;
+import io.security.corespringsecurity.security.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -16,7 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class CustomAuthenticationProvider implements AuthenticationProvider {
 
     @Autowired
-    private UserDetailsService userDetailsService;
+    private CustomUserDetailsService userDetailsService;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -34,6 +35,8 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
 //        사용자가 입력한 패스워드와, accontContext 에 있는 패스워드(DB) 에 저정돠있는 값 비교
 //        {bcrypt}$2a$10$osxkLDiGxVH2Yrc0QBtjw.CJEr1V23l2zEkf4q573OTNgopvMXIFi
         if(! passwordEncoder.matches(password,accountContext.getAccount().getPassword())){
+//            System.out.println(password);
+//            System.out.println(accountContext.getAccount().getPassword());
             throw new BadCredentialsException("BadCredentialsException");
         }
 
