@@ -3,7 +3,9 @@ package io.security.corespringsecurity.security.listener;
 import io.security.corespringsecurity.domain.entity.Account;
 import io.security.corespringsecurity.domain.entity.Resources;
 import io.security.corespringsecurity.domain.entity.Role;
+import io.security.corespringsecurity.domain.entity.Rolehierarchy;
 import io.security.corespringsecurity.repository.ResourcesRepository;
+import io.security.corespringsecurity.repository.RoleHierarchyRepository;
 import io.security.corespringsecurity.repository.RoleRepository;
 import io.security.corespringsecurity.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,11 +28,14 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
     private ResourcesRepository resourcesRepository;
     private PasswordEncoder passwordEncoder;
 
+    private RoleHierarchyRepository roleHierarchyRepository;
+
     @Autowired
-    private void setSetupDataLoader(UserRepository userRepository, RoleRepository roleRepository, ResourcesRepository resourcesRepository, PasswordEncoder passwordEncoder) {
+    private void setSetupDataLoader(UserRepository userRepository, RoleRepository roleRepository, ResourcesRepository resourcesRepository,RoleHierarchyRepository roleHierarchyRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.resourcesRepository = resourcesRepository;
+        this.roleHierarchyRepository = roleHierarchyRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -58,14 +63,17 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
         createResourceIfNotFound("/admin/**", "", roles, "url");
         Account account = createUserIfNotFound("admin", "1111", "admin@gmail.com", 10,  roles);
 
-//        Set<Role> roles1 = new HashSet<>();
+        createRoleHierarchyIfNotFound("ROLE_MANAGER","ROLE_ADMIN");
+
+        Set<Role> roles1 = new HashSet<>();
 //
-//        Role managerRole = createRoleIfNotFound("ROLE_MANAGER", "매니저");
-//        roles1.add(managerRole);
+        Role managerRole = createRoleIfNotFound("ROLE_MANAGER", "매니저");
+        roles1.add(managerRole);
+        createResourceIfNotFound("/message/**", "", roles1, "url");
 //        createResourceIfNotFound("io.security.corespringsecurity.aopsecurity.method.AopMethodService.methodTest", "", roles1, "method");
 //        createResourceIfNotFound("io.security.corespringsecurity.aopsecurity.method.AopMethodService.innerCallMethodTest", "", roles1, "method");
 //        createResourceIfNotFound("execution(* io.security.corespringsecurity.aopsecurity.pointcut.*Service.*(..))", "", roles1, "pointcut");
-//        createUserIfNotFound("manager", "pass", "manager@gmail.com", 20, roles1);
+        createUserIfNotFound("manager", "1111", "manager@gmail.com", 20, roles1);
 //
 //        Set<Role> roles3 = new HashSet<>();
 //
@@ -121,5 +129,23 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
                     .build();
         }
         return resourcesRepository.save(resources);
+    }
+
+    @Transactional
+    public Rolehierarchy createRoleHierarchyIfNotFound(String childRole, String parentRole){
+        Rolehierarchy byChildName = this.roleHierarchyRepository.findByChildName(childRole);
+        Role byRoleName = roleRepository.findByRoleName(parentRole);
+
+        Rolehierarchy rolehierarchy = new Rolehierarchy();
+        rolehierarchy.setChildName("ROLE_ADMIN");
+
+
+        if (byChildName == null) {
+            byChildName = Rolehierarchy.builder()
+                    .childName(childRole)
+                    .parentName(rolehierarchy)
+                    .build();
+        }
+        return roleHierarchyRepository.save(byChildName);
     }
 }

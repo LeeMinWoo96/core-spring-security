@@ -3,14 +3,18 @@ package io.security.corespringsecurity.security.config;
 //import io.security.corespringsecurity.security.handler.CustomAuthenticationSuccessHandler;
 
 import io.security.corespringsecurity.security.common.FormAuthenticationDetailsSource;
+import io.security.corespringsecurity.security.factory.UrlResourceMapFactoryBean;
 import io.security.corespringsecurity.security.handler.CustomAccessDeniedHandler;
 import io.security.corespringsecurity.security.manager.CustomRequestMatcherDelegatingAuthorizationManager;
 import io.security.corespringsecurity.security.provider.CustomAuthenticationProvider;
+import io.security.corespringsecurity.service.RoleHierarchyService;
+import io.security.corespringsecurity.service.SecurityResourceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -79,6 +83,9 @@ public class SecurityConfig {
     private CustomAccessDeniedHandler accessDeniedHandler;
 
     @Autowired
+    private SecurityResourceService securityResourceService;
+
+    @Autowired
     public SecurityConfig(FormAuthenticationDetailsSource authenticationDetailsSource) {
         this.authenticationDetailsSource = authenticationDetailsSource;
     }
@@ -99,24 +106,40 @@ public class SecurityConfig {
                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations());
     }
 
+//    initializer 에서 쓰려고
+    @Bean
+    public RoleHierarchyImpl roleHierarchy(){
+        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
+        return roleHierarchy;
+    }
+
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         AuthenticationManager authenticationManager = authenticationManager2();
+        urlResourceMapFactoryBean();
 
         http.authenticationManager(authenticationManager);
+        CustomRequestMatcherDelegatingAuthorizationManager customRequestMatcherDelegatingAuthorizationManager = new CustomRequestMatcherDelegatingAuthorizationManager(urlResourceMapFactoryBean().getObject());
+        customRequestMatcherDelegatingAuthorizationManager.setRoleHierarchy(roleHierarchy());
 
         http
-                .authorizeHttpRequests(authorize ->authorize
-                .requestMatchers("/", "/users", "/login*", "users/login/**","/login_proc","/denied/**","/logout").permitAll()
-//                .requestMatchers("/mypage").hasRole("USER")
-//                .requestMatchers("/message").hasRole("MANAGER")
-//                .requestMatchers("/config").hasRole("ADMIN")
-                .requestMatchers("/").permitAll()
-                .requestMatchers("/**").access(new CustomRequestMatcherDelegatingAuthorizationManager())
-                .anyRequest()
-                .authenticated()
-                .and())
+                .authorizeHttpRequests(authorize -> {
+                    try {
+                        authorize
+                        .requestMatchers("/", "/users", "/login*", "users/login/**","/login_proc","/denied/**","/logout").permitAll()
+        //                .requestMatchers("/mypage").hasRole("USER")
+        //                .requestMatchers("/message").hasRole("MANAGER")
+        //                .requestMatchers("/config").hasRole("ADMIN")
+                        .requestMatchers("/").permitAll()
+                        .requestMatchers("/**").access(customRequestMatcherDelegatingAuthorizationManager)
+                        .anyRequest()
+                        .authenticated()
+                        .and();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                })
                 .formLogin()
                 .loginPage("/login")
                 .loginProcessingUrl("/login_proc")
@@ -137,6 +160,12 @@ public class SecurityConfig {
 
 
         return http.build();
+    }
+
+    private UrlResourceMapFactoryBean urlResourceMapFactoryBean() {
+        UrlResourceMapFactoryBean urlResourceMapFactoryBean = new UrlResourceMapFactoryBean();
+        urlResourceMapFactoryBean.setSecurityResourceService(securityResourceService);
+        return urlResourceMapFactoryBean;
     }
 
 //    @Autowired
