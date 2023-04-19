@@ -3,6 +3,7 @@ package io.security.corespringsecurity.security.manager;
 import io.security.corespringsecurity.domain.entity.Account;
 import io.security.corespringsecurity.domain.entity.Role;
 import io.security.corespringsecurity.security.metadatasource.UrlFilterInvocationSecurityMetadataSource;
+import io.security.corespringsecurity.service.SecurityResourceService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -26,6 +27,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.web.FilterInvocation;
 import org.springframework.security.web.access.intercept.FilterSecurityInterceptor;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcherEntry;
@@ -38,6 +40,8 @@ import java.util.function.Supplier;
 public class CustomRequestMatcherDelegatingAuthorizationManager implements AuthorizationManager<RequestAuthorizationContext> {
 //    private final LinkedHashMap<RequestMatcher, List<ConfigAttribute>> requestMap = new LinkedHashMap<>();
     private LinkedHashMap<RequestMatcher, List<ConfigAttribute>> requestMap;
+
+    private SecurityResourceService securityResourceService;
 
 //    @Autowired
 //    private UrlFilterInvocationSecurityMetadataSource securityMetadataSource;
@@ -77,7 +81,26 @@ public class CustomRequestMatcherDelegatingAuthorizationManager implements Autho
 
     @Override
     public AuthorizationDecision check(Supplier<Authentication> authentication, RequestAuthorizationContext object) {
-        Authentication a = authentication.get(); // 이걸 살펴보았다.
+        Authentication a = authentication.get();
+        // Voter
+        WebAuthenticationDetails details = (WebAuthenticationDetails) a.getDetails();
+        String remoteAddress = details.getRemoteAddress();
+        List<String> accessIpList = securityResourceService.getAccessIpList();
+
+        boolean isRemoteAddressAllowed = false;
+        for(String ipAddress: accessIpList){
+            if(remoteAddress.equals(ipAddress)){
+                isRemoteAddressAllowed = true;
+                break;
+            }
+        }
+
+        if(!isRemoteAddressAllowed){
+            return  new AuthorizationDecision(false);
+        }
+
+
+
         Set<Role> userRoles = null;
 
         Collection<? extends GrantedAuthority> grantedAuthorities = getGrantedAuthorities(a);
@@ -125,13 +148,17 @@ public class CustomRequestMatcherDelegatingAuthorizationManager implements Autho
 
                     //       role hierarchy 적용
                     if(roleList.containsAll(entry.getValue())){
-                        return  new AuthorizationDecision(true);
+                        return  new AuthorizationDecision(true); // 인증
                     }
-                    return  new AuthorizationDecision(false); // 인증시킨다.
+                    return  new AuthorizationDecision(false); // 거부.
 
                 }
             }
         }
         return new AuthorizationDecision(false);
+    }
+
+    public void setSecurityResourceService(SecurityResourceService securityResourceService) {
+        this.securityResourceService = securityResourceService;
     }
 }

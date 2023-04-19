@@ -1,13 +1,7 @@
 package io.security.corespringsecurity.security.listener;
 
-import io.security.corespringsecurity.domain.entity.Account;
-import io.security.corespringsecurity.domain.entity.Resources;
-import io.security.corespringsecurity.domain.entity.Role;
-import io.security.corespringsecurity.domain.entity.Rolehierarchy;
-import io.security.corespringsecurity.repository.ResourcesRepository;
-import io.security.corespringsecurity.repository.RoleHierarchyRepository;
-import io.security.corespringsecurity.repository.RoleRepository;
-import io.security.corespringsecurity.repository.UserRepository;
+import io.security.corespringsecurity.domain.entity.*;
+import io.security.corespringsecurity.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -29,14 +23,16 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
     private PasswordEncoder passwordEncoder;
 
     private RoleHierarchyRepository roleHierarchyRepository;
+    private AccessIpRepository accessIpRepository;
 
     @Autowired
-    private void setSetupDataLoader(UserRepository userRepository, RoleRepository roleRepository, ResourcesRepository resourcesRepository,RoleHierarchyRepository roleHierarchyRepository, PasswordEncoder passwordEncoder) {
+    private void setSetupDataLoader(UserRepository userRepository, RoleRepository roleRepository, ResourcesRepository resourcesRepository,RoleHierarchyRepository roleHierarchyRepository, PasswordEncoder passwordEncoder, AccessIpRepository accessIpRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.resourcesRepository = resourcesRepository;
         this.roleHierarchyRepository = roleHierarchyRepository;
         this.passwordEncoder = passwordEncoder;
+        this.accessIpRepository = accessIpRepository;
     }
 
     private static final AtomicInteger count = new AtomicInteger(0);
@@ -50,6 +46,7 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
         }
 
         setupSecurityResources();
+        setupAccessIpData();
 
         alreadySetup = true;
     }
@@ -147,5 +144,15 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
                     .build();
         }
         return roleHierarchyRepository.save(byChildName);
+    }
+
+    private void setupAccessIpData() {
+        AccessIp byIpAddress = accessIpRepository.findByIpAddress("0:0:0:0:0:0:0:1");
+        if (byIpAddress == null) {
+            AccessIp accessIp = AccessIp.builder()
+                    .ipAddress("0:0:0:0:0:0:0:1")
+                    .build();
+            accessIpRepository.save(accessIp);
+        }
     }
 }

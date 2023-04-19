@@ -121,6 +121,7 @@ public class SecurityConfig {
 
         http.authenticationManager(authenticationManager);
         CustomRequestMatcherDelegatingAuthorizationManager customRequestMatcherDelegatingAuthorizationManager = new CustomRequestMatcherDelegatingAuthorizationManager(urlResourceMapFactoryBean().getObject());
+        customRequestMatcherDelegatingAuthorizationManager.setSecurityResourceService(securityResourceService);
         customRequestMatcherDelegatingAuthorizationManager.setRoleHierarchy(roleHierarchy());
 
         http
